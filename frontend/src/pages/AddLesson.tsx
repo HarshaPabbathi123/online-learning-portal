@@ -1,4 +1,3 @@
-// ✅ AddLesson.tsx
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from '@tanstack/react-router';
@@ -8,16 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
 const AddLesson = () => {
-  const [modules, setModules] = useState<any[]>([]);
-  const [moduleId, setModuleId] = useState('');
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
   const navigate = useNavigate();
+  const [modules, setModules] = useState<any[]>([]);
+  const [form, setForm] = useState({
+    moduleId: '',
+    title: '',
+    content: '',
+    videoUrl: ''
+  });
 
   useEffect(() => {
     axios.get('http://localhost:5000/api/courses/instructor', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     }).then(res => {
       const allModules = res.data.flatMap((course: any) => course.modules || []);
       setModules(allModules);
@@ -26,48 +27,59 @@ const AddLesson = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await axios.post(`http://localhost:5000/api/modules/${moduleId}/lessons`,
-        { title, content, videoUrl },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-      );
-      navigate({ to: '/dashboard' });
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to add lesson');
-    }
+    await axios.post(`http://localhost:5000/api/modules/${form.moduleId}/lessons`, {
+      title: form.title,
+      content: form.content,
+      videoUrl: form.videoUrl
+    }, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
+    navigate({ to: '/dashboard' });
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow rounded space-y-4">
-      <h2 className="text-2xl font-semibold mb-4 text-center">Add Lesson</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="module">Module</Label>
-          <select id="module" className="w-full border p-2 rounded" onChange={(e) => setModuleId(e.target.value)}>
-            <option value="">Select a module</option>
-            {modules.map(mod => (
-              <option key={mod._id} value={mod._id}>{mod.title}</option>
-            ))}
-          </select>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-100 via-indigo-100 to-purple-100 px-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md">
+        <h2 className="text-3xl font-bold text-center text-violet-700 mb-6">Add Lesson</h2>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <Label htmlFor="moduleId">Module</Label>
+            <select
+              id="moduleId"
+              className="w-full border p-2 rounded mt-1"
+              value={form.moduleId}
+              onChange={(e) => setForm({ ...form, moduleId: e.target.value })}
+              required
+            >
+              <option value="">Select a module</option>
+              {modules.map((m) => (
+                <option key={m._id} value={m._id}>
+                  {m.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div>
-          <Label htmlFor="title">Lesson Title</Label>
-          <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        </div>
+          <div>
+            <Label htmlFor="title">Lesson Title</Label>
+            <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+          </div>
 
-        <div>
-          <Label htmlFor="content">Content</Label>
-          <Textarea id="content" value={content} onChange={(e) => setContent(e.target.value)} />
-        </div>
+          <div>
+            <Label htmlFor="content">Content</Label>
+            <Textarea id="content" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} required />
+          </div>
 
-        <div>
-          <Label htmlFor="video">Video URL (optional)</Label>
-          <Input id="video" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
-        </div>
+          <div>
+            <Label htmlFor="videoUrl">Video URL (optional)</Label>
+            <Input id="videoUrl" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} />
+          </div>
 
-        <Button type="submit" className="w-full">Add Lesson</Button>
-      </form>
+          <Button type="submit" className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2 transition">
+            Add Lesson
+          </Button>
+        </form>
+      </div>
     </div>
   );
 };
