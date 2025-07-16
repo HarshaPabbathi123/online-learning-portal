@@ -4,7 +4,8 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const courseRoutes = require('./routes/courseRoutes');
 const moduleRoutes = require('./routes/moduleRoutes');
-
+const lessonRoutes = require('./routes/lessonRoutes');
+const progressRoutes = require('./routes/progressRoutes');
 
 dotenv.config();
 connectDB();
@@ -19,6 +20,8 @@ const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/modules', moduleRoutes);
+app.use('/api/lessons', lessonRoutes);
+app.use('/api/progress', progressRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

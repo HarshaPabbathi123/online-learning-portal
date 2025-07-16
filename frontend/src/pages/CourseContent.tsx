@@ -1,64 +1,100 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams } from '@tanstack/react-router';
-import { motion } from 'framer-motion';
 
 const CourseContent = () => {
   const { courseId } = useParams({ from: '/course/$courseId' });
   const [modules, setModules] = useState<any[]>([]);
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     axios
       .get(`http://localhost:5000/api/modules/course/${courseId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => setModules(res.data))
-      .catch((err) => alert(err.response?.data?.message || 'Access Denied'));
+      .then((res) => setModules(res.data));
+
+    axios
+      .get('http://localhost:5000/api/progress/completed', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        const completedIds = res.data.map((lesson: any) => lesson._id);
+        setCompletedLessons(completedIds);
+      });
   }, [courseId]);
 
+  const markComplete = async (lessonId: string) => {
+    try {
+      await axios.post(
+        `http://localhost:5000/api/progress/lessons/${lessonId}/complete`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCompletedLessons([...completedLessons, lessonId]);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to mark as complete');
+    }
+  };
+
   return (
-    <div className="max-w-5xl mx-auto py-12 px-4">
-      <h1 className="text-4xl font-bold text-center text-indigo-700 mb-10">
-        📚 Course Content
-      </h1>
+    <div className="p-6 max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">📘 Course Content</h2>
 
       {modules.map((mod) => (
-        <motion.div
-          key={mod._id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-10"
-        >
-          <h2 className="text-2xl font-semibold text-purple-600 mb-4 border-l-4 border-purple-500 pl-3">
-            📦 {mod.title}
-          </h2>
-          <div className="grid gap-4">
-            {mod.lessons.map((lesson: any) => (
-              <div
-                key={lesson._id}
-                className="bg-white p-5 shadow-lg rounded-lg border border-gray-200 hover:shadow-xl transition"
-              >
-                <h3 className="text-lg font-bold text-gray-800 mb-2">📘 {lesson.title}</h3>
-                <p className="text-gray-600 mb-3">{lesson.content}</p>
-                {lesson.videoUrl && (
-                  <div className="aspect-video rounded overflow-hidden border border-gray-300">
-                    <iframe
-                      src={lesson.videoUrl.includes('youtube.com/watch')
-                        ? `https://www.youtube.com/embed/${new URLSearchParams(
-                            new URL(lesson.videoUrl).search
-                          ).get('v')}`
-                        : lesson.videoUrl}
-                      title="Lesson Video"
-                      className="w-full h-full"
-                      allowFullScreen
-                    />
+        <div key={mod._id} className="mb-6">
+          <h3 className="text-xl font-semibold mb-2 text-purple-700">{mod.title}</h3>
+          <ul className="pl-4 space-y-3">
+            {mod.lessons.map((lesson: any) => {
+              const isCompleted = completedLessons.includes(lesson._id);
+              return (
+                <li
+                  key={lesson._id}
+                  className={`border p-4 rounded ${isCompleted ? 'bg-green-50 border-green-400' : 'border-gray-200'}`}
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-lg">
+                      {lesson.title} {isCompleted && <span className="text-green-600 text-sm">✅</span>}
+                    </h4>
+                    {!isCompleted && (
+                      <button
+                        className="px-2 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                        onClick={() => markComplete(lesson._id)}
+                      >
+                        Mark as Complete
+                      </button>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </motion.div>
+                  <p className="text-sm text-gray-700 mb-2">{lesson.content}</p>
+
+                  {lesson.videoUrl && (
+                    <iframe
+                      src={lesson.videoUrl}
+                      className="w-full h-64 rounded"
+                      allowFullScreen
+                      title="Lesson Video"
+                    />
+                  )}
+
+                  {lesson.pdfUrl && (
+                    <div className="mt-2">
+                      <a
+                        href={`http://localhost:5000${lesson.pdfUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-purple-600 underline"
+                      >
+                        📄 View PDF
+                      </a>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       ))}
     </div>
   );

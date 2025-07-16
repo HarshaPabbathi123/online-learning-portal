@@ -78,5 +78,22 @@ router.get('/instructor', protect, authorizeRoles('instructor'), async (req, res
   }
 });
 
+// ✅ In courseRoutes.js or course controller
+router.delete('/:id', protect, authorizeRoles('instructor'), async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+
+    if (course.instructor.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this course' });
+    }
+
+    await course.deleteOne();
+    res.json({ message: 'Course deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 module.exports = router; // ✅ Keep this LAST
