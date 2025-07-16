@@ -4,6 +4,7 @@ interface LessonProps {
   title: string;
   content: string;
   videoUrl?: string;
+  pdfUrl?: string;
 }
 
 const LessonViewer: React.FC<{ lesson: LessonProps }> = ({ lesson }) => {

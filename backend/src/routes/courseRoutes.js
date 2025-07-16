@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
+const { model } = require('mongoose');
 
 // POST /api/courses - Create a course (Instructor only)
 router.post('/', protect, authorizeRoles('instructor'), async (req, res) => {
@@ -63,7 +64,14 @@ router.get('/enrolled', protect, authorizeRoles('student'), async (req, res) => 
 // GET /api/courses/instructor - Courses created by logged-in instructor
 router.get('/instructor', protect, authorizeRoles('instructor'), async (req, res) => {
   try {
-    const courses = await Course.find({ instructor: req.user._id }).populate('modules');
+    const courses = await Course.find({ instructor: req.user._id }).populate({
+      path: 'modules',
+      populate: {
+        path: 'lessons',
+        model: 'Lesson',
+      },
+    })
+    .populate('instructor', 'name');
     res.json(courses);
   } catch (err) {
     res.status(500).json({ message: err.message });

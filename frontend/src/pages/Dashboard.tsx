@@ -1,3 +1,5 @@
+// ✅ src/pages/Dashboard.tsx
+
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { getUserFromToken } from '@/utils/auth';
@@ -13,27 +15,30 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
 
-    if (user.role === 'student') {
-      axios
-        .get('http://localhost:5000/api/courses/enrolled', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        })
-        .then((res) => setCourses(res.data));
+    const fetchData = async () => {
+      if (user.role === 'student') {
+        const [enrolledRes, allRes] = await Promise.all([
+          axios.get('http://localhost:5000/api/courses/enrolled', {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }),
+          axios.get('http://localhost:5000/api/courses/access', {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }),
+        ]);
+        setCourses(enrolledRes.data);
+        const enrolledIds = new Set(enrolledRes.data.map((c: any) => c._id));
+        setAvailableCourses(allRes.data.filter((c: any) => !enrolledIds.has(c._id)));
+      }
 
-      axios
-        .get('http://localhost:5000/api/courses/access', {
+      if (user.role === 'instructor') {
+        const res = await axios.get('http://localhost:5000/api/courses/instructor', {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        })
-        .then((res) => setAvailableCourses(res.data));
-    }
+        });
+        setCourses(res.data);
+      }
+    };
 
-    if (user.role === 'instructor') {
-      axios
-        .get('http://localhost:5000/api/courses/instructor', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        })
-        .then((res) => setCourses(res.data));
-    }
+    fetchData();
   }, [user]);
 
   const handleLogout = () => {
@@ -56,6 +61,8 @@ const Dashboard = () => {
       alert(err.response?.data?.message || 'Enrollment failed');
     }
   };
+
+  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
 
   if (!user) return null;
 
@@ -91,9 +98,7 @@ const Dashboard = () => {
             </Button>
           </div>
 
-          <h2 className="text-2xl font-bold text-blue-700 mb-6">
-            🎓 Created Courses
-          </h2>
+          <h2 className="text-2xl font-bold text-blue-700 mb-6">🎓 Created Courses</h2>
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
             {courses.map((course) => (
               <motion.div
@@ -103,23 +108,35 @@ const Dashboard = () => {
                 transition={{ duration: 0.4 }}
               >
                 <Card className="hover:shadow-xl transition-shadow border-blue-100 border">
-                  <CardContent className="p-5">
-                    <h3 className="text-xl font-semibold text-blue-800">
-                      {course.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-2">{course.description}</p>
-                    {course.modules?.length > 0 ? (
-                      <div className="mt-2">
-                        <p className="text-sm font-medium text-gray-700">Modules:</p>
-                        <ul className="list-disc list-inside text-sm text-gray-600">
-                          {course.modules.map((mod: any) => (
-                            <li key={mod._id}>{mod.title}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">No modules added yet</p>
-                    )}
+                  <CardContent className="p-5 space-y-2">
+                    <h3 className="text-xl font-semibold text-blue-800">{course.title}</h3>
+                    <p className="text-sm text-gray-600">{course.description}</p>
+                    <div>
+                      <p className="font-medium mt-3">Modules:</p>
+                      <ul className="text-sm space-y-2">
+                        {course.modules?.map((mod: any) => (
+                          <li key={mod._id}>
+                            <button
+                              className="text-purple-700 underline"
+                              onClick={() =>
+                                setExpandedModuleId((prev) =>
+                                  prev === mod._id ? null : mod._id
+                                )
+                              }
+                            >
+                              {expandedModuleId === mod._id ? '▾' : '▸'} {mod.title}
+                            </button>
+                            {expandedModuleId === mod._id && (
+                              <ul className="ml-5 list-disc text-green-600 mt-1">
+                                {mod.lessons?.map((lesson: any) => (
+                                  <li key={lesson._id}>{lesson.title}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
