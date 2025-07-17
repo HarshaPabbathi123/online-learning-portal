@@ -4,7 +4,6 @@ interface LessonProps {
   title: string;
   content: string;
   videoUrl?: string;
-  pdfUrl?: string;
 }
 
 const LessonViewer: React.FC<{ lesson: LessonProps }> = ({ lesson }) => {
@@ -16,7 +15,7 @@ const LessonViewer: React.FC<{ lesson: LessonProps }> = ({ lesson }) => {
 
   return (
     <div className="max-w-4xl mx-auto mt-10 p-6 bg-white shadow rounded space-y-6">
-      <h2 className="text-3xl font-bold">{lesson.title}</h2>
+      <h2 className="text-3xl font-bold text-gray-800">{lesson.title}</h2>
       <p className="text-gray-700 text-lg">{lesson.content}</p>
 
       {lesson.videoUrl && (
